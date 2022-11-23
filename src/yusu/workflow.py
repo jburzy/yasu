@@ -5,10 +5,8 @@ class Workflow():
     """
 
     def __init__(self, dag) -> None:
-
         self._dag = dag
         pass
 
     def execute(self) -> None:
-
         self._dag.execute()

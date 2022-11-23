@@ -2,6 +2,30 @@ import argparse
 from .utils import build_dag_from_yaml
 from .dag import DAG
 from .workflow import Workflow
+import sys
+import os
+import hashlib
+import dill
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("output.log"),
+        logging.StreamHandler()
+    ]
+)
+
+def cache_file(input_file):
+
+    h  = hashlib.sha256()
+    b  = bytearray(128*1024)
+    mv = memoryview(b)
+    with open(input_file, 'rb', buffering=0) as f:
+        while n := f.readinto(mv):
+            h.update(mv[:n])
+    return h.hexdigest()
 
 def main():
 
@@ -10,9 +34,30 @@ def main():
     parser.add_argument('-b', '--backend', choices=['slurm','condor'], default = 'slurm', help = 'Backend to use')
     args = parser.parse_args()
 
-    dag = build_dag_from_yaml(args.input_file)
-    workflow = Workflow(dag)
-    workflow.execute()
+    file_cache = cache_file(args.input_file)
+
+    history = {}
+    if not os.path.isdir("./.__yusu_cache__"):
+        os.mkdir("./.__yusu_cache__")
+    try:
+        cache = open('./.__yusu_cache__/cache.pickle', 'rb+')
+        history = dill.load(cache)
+    except IOError:
+        logging.info("Cache file not found. Creating file .__yusu_cache__/cache.pickle.")
+        cache = open('./.__yusu_cache__/cache.pickle', 'wb')
+
+    if file_cache in history:
+        logging.info(f"File {args.input_file} found in cache, executing cached workflow.")
+        workflow = history[file_cache]
+        workflow.execute()
+    else:
+        logging.info(f"File {args.input_file} not found in cache, building new workflow.")
+        dag = build_dag_from_yaml(args.input_file)
+        workflow = Workflow(dag)
+        workflow.execute()
+
+        history[file_cache] = workflow
+        dill.dump(history, cache)
 
 if __name__=="__main__":
     main()
