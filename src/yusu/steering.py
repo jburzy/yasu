@@ -12,7 +12,7 @@ def main():
 
     dag = build_dag_from_yaml(args.input_file)
     workflow = Workflow(dag)
-    workflow.execute(args.backend)
+    workflow.execute()
 
 if __name__=="__main__":
     main()

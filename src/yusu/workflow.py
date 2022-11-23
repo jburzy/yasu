@@ -1,3 +1,4 @@
+from .node import Node
 class Workflow():
     """
     The class representation of the workflow.
@@ -8,5 +9,6 @@ class Workflow():
         self._dag = dag
         pass
 
-    def execute(self, backend) -> None:
-        pass
+    def execute(self) -> None:
+
+        self._dag.execute()
