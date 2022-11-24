@@ -32,11 +32,10 @@ class DAG():
         queue = [self._init]
         while queue:
             node = queue.pop(0) 
-            logging.info(f"Visiting node {node.name}")
+            logging.info(f"Processing node {node.name}")
 
             # check the status of the current node
             node_status = node.query()
-            logging.info(f"Querying node {node.name} status...{node_status}")
 
             # check if dependencies have finished before executing
             dependencies_finished = True
@@ -47,7 +46,10 @@ class DAG():
                     dependencies_finished = False
                     continue  
 
-            execute_node = dependencies_finished and node_status == TaskStatus.UNDEFINED
+            execute_node = (dependencies_finished and node_status == TaskStatus.UNDEFINED) or node_status == TaskStatus.FAILED
+
+            if node_status == TaskStatus.FAILED:
+                logging.info(f"Node {node.name} failed! Retrying...")
 
             if execute_node:
                 logging.info(f"Executing node {node.name}")

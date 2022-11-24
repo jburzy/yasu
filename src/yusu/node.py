@@ -23,6 +23,7 @@ class Node():
         self.backend = Backends.LOCAL
         self.pid = 0
         self.status = TaskStatus.UNDEFINED
+        self.process = None
 
     def execute(self) -> None:
 
@@ -30,8 +31,15 @@ class Node():
             return
 
         if self.backend == Backends.LOCAL:
-            self.process = subprocess.Popen(self.payload,shell=True)
-            self.pid = self.process.pid
+            with open(f"./.__yusu_cache__/{self.name}.log","w") as log:
+                payload = f"""if {self.payload}
+                then
+                    echo "PASS"
+                else
+                    echo "FAIL"
+                fi"""
+                self.process = subprocess.Popen(payload,shell=True,stdout=log)
+                self.pid = self.process.pid
 
     def query(self) -> TaskStatus:
 
@@ -52,11 +60,20 @@ class Node():
             else:
                 self.status = TaskStatus.RUNNING
                 return TaskStatus.RUNNING
+
         self.status = TaskStatus.COMPLETED
         return TaskStatus.COMPLETED
 
     def get_exit_code(self) -> TaskStatus:
 
-        self.status = TaskStatus.COMPLETED
-        return TaskStatus.COMPLETED
+        with open(f"./.__yusu_cache__/{self.name}.log",'r') as f:
+            lines = f.read().splitlines()
+            last_line = lines[-1]
+
+            if "FAIL" in last_line:
+                self.status = TaskStatus.FAILED
+                return TaskStatus.FAILED
+            else:
+                self.status = TaskStatus.COMPLETED
+                return TaskStatus.COMPLETED
         
